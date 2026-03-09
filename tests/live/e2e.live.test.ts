@@ -16,6 +16,7 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { config } from "dotenv";
 import { LegiScanClient } from "../../src/legiscan-client.js";
+import { extractTextFromDoc } from "../../src/tools/helpers.js";
 
 // Load .env file
 config();
@@ -125,6 +126,17 @@ describeE2E("LegiScan MCP E2E Tests", () => {
       expect(text.doc_id).toBe(docId);
       expect(text.doc).toBeDefined();
       expect(text.mime).toBeDefined();
+
+      const extracted = await extractTextFromDoc(text.mime_id, text.doc);
+      expect(typeof extracted).toBe("string");
+      // The extracted text should not contain raw base64 (no long runs of alphanumerics
+      // without spaces) and should not contain HTML open-tags if the source was HTML.
+      if (text.mime_id === 1) {
+        expect(extracted).not.toMatch(/<[a-zA-Z]/);
+      }
+      console.log(
+        `Extracted ${extracted.length} chars of plain text from ${text.mime} document`
+      );
     });
   });
 

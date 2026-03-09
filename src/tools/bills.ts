@@ -3,7 +3,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { LegiScanClient } from "../legiscan-client.js";
-import { jsonResponse, errorResponse, stateCodeSchema } from "./helpers.js";
+import { jsonResponse, errorResponse, stateCodeSchema, extractTextFromDoc } from "./helpers.js";
 
 export function registerBillTools(server: McpServer, client: LegiScanClient) {
   // Get Bill Details
@@ -17,6 +17,26 @@ export function registerBillTools(server: McpServer, client: LegiScanClient) {
       try {
         const bill = await client.getBill(bill_id);
         return jsonResponse(bill);
+      } catch (error) {
+        return errorResponse(error);
+      }
+    }
+  );
+
+  // Get Bill Text
+  server.tool(
+    "legiscan_get_bill_text",
+    "Get the full plain-text content of a bill document. Provide the doc_id from the bill's texts array (call get_bill first). Automatically decodes PDF and HTML documents.",
+    {
+      doc_id: z.number().describe("Document ID from bill.texts[].doc_id"),
+    },
+    async ({ doc_id }) => {
+      try {
+        const billText = await client.getBillText(doc_id);
+        const text = await extractTextFromDoc(billText.mime_id, billText.doc);
+        return {
+          content: [{ type: "text" as const, text }],
+        };
       } catch (error) {
         return errorResponse(error);
       }

@@ -54,6 +54,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",
     "dotenv": "^16.3.1",
+    "pdf-parse": "^2.4.5",
     "zod": "^3.22.4"
   },
   "devDependencies": {

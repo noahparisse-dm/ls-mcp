@@ -1,5 +1,6 @@
 // Shared helpers for MCP tool handlers
 import { z } from "zod";
+import { PDFParse } from "pdf-parse";
 
 /**
  * Normalize a bill number for comparison
@@ -36,6 +37,37 @@ export function jsonResponse(data: unknown) {
       },
     ],
   };
+}
+
+/**
+ * Extract plain text from a base64-encoded document.
+ * Supports HTML (mime_id=1) and PDF (mime_id=2); falls back to UTF-8 for others.
+ */
+export async function extractTextFromDoc(
+  mimeId: number,
+  base64Doc: string
+): Promise<string> {
+  const buffer = Buffer.from(base64Doc, "base64");
+
+  if (mimeId === 1) {
+    // HTML: decode and strip tags
+    return buffer
+      .toString("utf-8")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  if (mimeId === 2) {
+    // PDF: parse with pdf-parse v2 class API
+    const parser = new PDFParse({ data: new Uint8Array(buffer) });
+    const result = await parser.getText();
+    await parser.destroy();
+    return result.text.trim();
+  }
+
+  // Fallback: return raw UTF-8 content
+  return buffer.toString("utf-8");
 }
 
 /**
